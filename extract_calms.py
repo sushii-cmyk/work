@@ -248,7 +248,7 @@ def main():
     # print(c)
 
     xirc = vunc(rect)[circ]
-    print(xirc)
+    print(xirc) 
     a[xirc[0], xirc[1]] = [255, 255, 0]
 
     plt.imshow(a)
