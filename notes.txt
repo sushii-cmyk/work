@@ -1,0 +1,1 @@
+order = nose, left ear, right ear, neck, left hip, right hip, tail base

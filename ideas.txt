@@ -1,0 +1,18 @@
+IMPORTANT INDIVIDUAL FEATURES
+velocity + acceleration
+angular velocity + acceleration of facing direction
+- usually smoother when interacting
+
+
+UNIMPORTANT INDIVIDUAL FEATURES
+
+
+IMPORTANT SOCIAL FEATURES
+relative direction / facing angle
+distance
+nose
+nose/flank/tail distances
+
+
+UNIMPORTANT SOCIAL FEATURES
+
