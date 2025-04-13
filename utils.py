@@ -29,42 +29,24 @@ pi = np.pi
 tau = 2 * np.pi
 
 
-def uint(n, *, exc=True, inc=True):
+def uint(n, a = 0, b = 1, *, exc=True, inc=True):
     """
-    n points in the Unit INTerval (R)
+    gives n points in [a, b];
+    default n pts in the Unit INTerval
+    """
 
-    :param n:
-    :type n:
-    :param inc:
-    :type inc:
-    :param exc:
-    :type exc:
-    :return:
-    :rtype:
-    """
     # teeny tiny epsilon diff for drawing
     eps = 0.0001
-    r = np.linspace(0 + eps, 1 - eps, round(n), exc)[not inc:]
-    return r
+    r = np.unique(np.linspace(a + eps, b - eps, round(n), exc)[not inc:])
+    return r.reshape((1, round(n)))
 
 
-def unit(n, *, exc=True, inc=True):
+def unit(n, a = 0, b = 1, *, exc=True, inc=True):
     """
-    n
-    print(vunc(np.linalg.norm)[t]i points in the UNIT circle (C)
-    exclude wi
-
-    :param n:
-    :type n:
-    :param inc:
-    :type inc:
-    :param exc:
-    :type exc:
-    :return:
-    :rtype:
+    n points in the UNIT circle (C)
     """
 
-    return exp2ni(uint(n, exc=exc, inc=inc))
+    return exp2ni(uint(n, a, b, exc=exc, inc=inc))
 
 
 def exp2ni(t):
@@ -108,9 +90,20 @@ class vunc:
         if isinstance(x, complex):
             # print(x)
             return complex(self.f(x.real), self.f(x.imag))
+
+
+
         else:
             # print(x)
             return np.vectorize(self.f)(x)
+
+    def __mul__(self, other):
+        return self.f(other)
+
+    def __get__(self, other):
+       if isinstance(other, vunc):
+            print("hi")
+            return self[self.f[other]]
 
 
 class f:
@@ -118,13 +111,33 @@ class f:
         self.fn = fn
 
     def __mul__(self, other):
-        return self.fn(other)
+        return self.access(other)
 
+    def __getitem__(self, other):
+        return self.access(other)
+
+    def __call__(self, other, *args, **kwargs):
+        if args or kwargs:
+            return self.access(other)(*args, **kwargs)
+        return self.access(other)
+
+    def access(self, x):
+        if isinstance(x, f):
+            return f(lambda s: self.fn(s))
+        else:
+            return self.fn(x)
 
 
 array = np.asarray
-rect = lambda z: array([int(z.real), int(z.imag)])
+rect = lambda z: array([rovnd * z.real, rovnd * z.imag])
 comp = lambda *p: complex(*p)
 def _rovnd(x):
-    return x
-rovnd = vunc(_rovnd)
+    return vunc(round) * x
+rovnd = vunc(np.vectorize(round))
+
+
+if __name__ == '__main__':
+    a = f(lambda x: x ** 2)
+    b = f(lambda x: x + 1)
+
+    print(a(a[a * 1]))

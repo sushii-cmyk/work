@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
+from numpy.ma.core import shape
 
 from utils import *
 
@@ -37,6 +38,7 @@ class view:
 
         return r
 
+
 log_files = logger("F>")
 log_debug = logger("D>")
 
@@ -49,6 +51,7 @@ bv_ids = {
 
 # l + r bps might eb switched
 bp_ids = ["nose", "earl", "earr", "neck", "hipl", "hipr", "tail"]
+
 
 def diffs(x):
     # all differences (i < j)
@@ -153,6 +156,7 @@ def vel(kpts):
 
     return vel
 
+
 def draw_frame(video, ants):
     frame, pnts = at_frame(0, 1, video, ants)
     fram2, pnt2 = at_frame(1, 1, video, ants)
@@ -166,8 +170,46 @@ def draw_frame(video, ants):
         q = np.vectorize(int)(p)
         frame[q[0], q[1]] = [0, 255, 0]
 
-
     Image.fromarray(frame).show()
+
+def coords(part, id, ants):
+    """ ants = # (frames) x (mouse ID) x (x, y coordinate) x (body part) """
+    u = bp_ids.index(part)
+    ps = ants[:, id, :, u]
+
+    return ps
+
+def parse_diff(part, id, qart, jd, ants=None):
+    """
+    returns the displacement vectors
+    (first body part coords) - (second body part coods). These vectors
+    point from Qart to Part. CalMS bodyparts go:
+    "nose", "earl", "earr", "neck", "hipl", "hipr", "tail"
+
+    :param part: menuend mouse bodypart
+    :type part: str
+    :param id: menuend mouse id
+    :type id: int
+    :param qart: subtrahend mouse bodypart
+    :type qart: str
+    :param jd: subtrahend mouse id
+    :type jd: int
+    :return: array
+    :rtype: np.array
+    """
+
+    for p in [part, qart]:
+        if p not in bp_ids:
+            raise KeyError(f"No such bodypart id \'{p}\'."
+                           f"Known bodyparts are: {', '.join(bp_ids)}.")
+
+    ps = coords(part, id, ants)
+    qs = coords(qart, jd, ants)
+    rs = ps - qs
+    # print("P", ps, "Q", qs, "R", rs)
+
+    return rs
+
 
 def draw_n_frames(video, ants, a=0, base=None, n=5):
     data = [at_frame(i, 1, video, ants) for i in range(a, n)]
@@ -185,37 +227,23 @@ def draw_n_frames(video, ants, a=0, base=None, n=5):
     s_ = 2.5
     for i, p in enumerate(np.linspace(0, s_ * mean, n_)):
         q = np.vectorize(int)(annot + p)
-        frame[q[0], q[1]] = 255 * array([i / n_, 0, 1 - i / n_])
-
-    # draw paths
-    # for t, (f, g) in enumerate(frames):
-    #     for i, p in enumerate(g.T):
-    #         # place body parts
-    #         frame[p[0], p[1]] = [255, 0, 40 * i]
-    #
-    #     frame[q[0]]
-    #
-    #     for i, p in enumerate(np.linspace(h, g, n)):
-    #         q = np.vectorize(int)(p)
-    #         k = int(255 * i / n)
-    #
-    #         frame[q[0], q[1]] = (0, 255 * i / n, 0)
-    #     h = g
-
-    # d0 = diff(pnts - frames[0][1], 0, 1)
-    # d1 = diff(pnts - frames[1][1], 0, 1)
-    # d01 = diff(array(frames[0][1]) - frames[1][1], 0, 1)
-    # print(d0, d1, d01)
+        frame[q[0], q[1]] = 255 * np.sqrt(array([1 - i / n_, 0, i / n_]))
 
     return frame
 
-# !!!!!!!! here I, J = MOUSE ID, BODYPART ID
-def circ_an(ants, i, j, r):
-    ts = unit(tau * r)
-    return ants[i][j] + r * ts
 
-def circ_ij(i, j, r):
-    ts = unit(tau * r)
+# !!!!!!!! here I, J = MOUSE ID, BODYPART ID
+def circ_an(ants, i, j, r, a = 0, b = 1):
+    ts = unit(tau * r, a, b)
+    c = (vunc(rect) * (r * ts)).T
+
+    a = np.full(np.shape(c), ants[i].T[j])
+
+    return c + a
+
+
+def circ_ij(i, j, r, a = 0., b = 1.):
+    ts = unit(tau * r, 1 - a, 1 - b)
     # print(exp2ni(ts))
     return complex(i, j) + r * ts
 
@@ -227,29 +255,37 @@ def main():
     # mouse id
     m_id = 73
 
-    # file for annotations, annotations as point s
+    # file for annotations, annotations as points
     video, ants = files(m_id)
 
-    log_debug[np.shape(video), np.shape(ants)]
+    # lines
     a0 = draw_n_frames(video, ants, 0, n=10)
-    # a1 = draw_n_frames(video, ants, 10, n=1, base = a0)
-
-    circ = circ_ij(200, 200, 20)
-
     a = a0
-    # c = [x y, x y, x y...]
-    # c.T = [x x x..., y y y...]
-    # c = vunc(rect)[c]
-    # print(vunc(lambda x: x)[c])
-    for c in circ:
-        x = rect(c)
-        # print(">>", rect(x))
-        a[*rovnd[x]] = [255, 0, 255]
-    # print(c)
 
-    xirc = vunc(rect)[circ]
-    print(xirc)
-    a[xirc[0], xirc[1]] = [255, 255, 0]
+    # diff tests
+    n_ = 150
+    ns_01 = parse_diff("nose", 0, "nose", 1, ants)[0]
+    ns__01 = uint(n_).T @ (ns_01.reshape((1, 2)))
+    print(ns__01)
+    ns___01 = coords("nose", 0, ants)[0]
+    print(ns___01)
+    ns_ = np.apply_along_axis(lambda x: ns___01 - x, 1, ns__01)
+    print(ns_)
+    ns__ = (rovnd * ns_).T
+    print(ns__)
+
+    a[ns__[1], ns__[0]] = [0, 0, 255]
+
+
+    # circle!
+    circ = circ_ij(300, 300, 10)
+    xirc = rovnd * (vunc(rect) * circ.T)
+    a[xirc[1], xirc[0]] = [255, 0, 0]
+
+    # another circle!
+    dirc = circ_ij(400, 400, 20, 0, 0.3)
+    yirc = rovnd * (vunc(rect) * dirc.T)
+    a[yirc[1], yirc[0]] = [0, 255, 0]
 
     plt.imshow(a)
     plt.show()
@@ -261,6 +297,5 @@ if __name__ == '__main__':
     main()
 
     # print(f(lambda x: x) * [1, 2])
-
 
     quit()
