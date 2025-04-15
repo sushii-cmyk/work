@@ -2,6 +2,7 @@ import json
 import os.path
 from os.path import join
 from sys import float_repr_style
+import msvcrt
 
 import cv2
 import numpy as np
@@ -292,9 +293,26 @@ def main():
 
     cv2.destroyAllWindows()
 
+def nain():# mouse id
+    m_id = 73
+    # file for annotations, annotations as points
+    video, ants = files(m_id)
+
+    n = 0
+    for i in range(1000):
+        g = msvcrt.getch()
+        if g == b'q':
+            quit()
+
+        if g == b'w':
+            n += 1
+            if n > 9:
+                break
+    else:
+        on = False
 
 if __name__ == '__main__':
-    main()
+    nain()
 
     # print(f(lambda x: x) * [1, 2])
 
