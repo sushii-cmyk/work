@@ -29,19 +29,47 @@ pi = np.pi
 tau = 2 * np.pi
 
 
-def uint(n, a = 0, b = 1, *, exc=True, inc=True):
+class func:
+    def __init__(self, f):
+        self.f = f
+
+    def __mul__(self, other):
+        if isinstance(other, type(lambda x: x)) or \
+                isinstance(other, func):
+            return func(lambda x: self.f(func(other).f(x)))
+
+        return self.f(other)
+
+    def __getitem__(self, item):
+        return self * item
+
+    def __call__(self, *args, **kwargs):
+        return self * args[0]
+
+
+class RGB:
+    R = np.array([255, 0, 0])
+    r = "#ff0000"
+    G = np.array([0, 255, 0])
+    g = "#00ff00"
+    B = np.array([0, 0, 255])
+    b = "#0000ff"
+
+
+def uint(n, a=0, b=1, *, exc=True, inc=True):
     """
     gives n points in [a, b];
-    default n pts in the Unit INTerval
+    default n pts in the Unit INTerval.
+    returns (1 x n) matrix
     """
 
     # teeny tiny epsilon diff for drawing
     eps = 0.0001
-    r = np.unique(np.linspace(a + eps, b - eps, round(n), exc)[not inc:])
-    return r.reshape((1, round(n)))
+    r = np.unique(np.linspace(a - eps, b + eps, round(n), exc)[not inc:])
+    return r
 
 
-def unit(n, a = 0, b = 1, *, exc=True, inc=True):
+def unit(n, a=0, b=1, *, exc=True, inc=True):
     """
     n points in the UNIT circle (C)
     """
@@ -101,8 +129,7 @@ class vunc:
         return self.f(other)
 
     def __get__(self, other):
-       if isinstance(other, vunc):
-            print("hi")
+        if isinstance(other, vunc):
             return self[self.f[other]]
 
 
@@ -131,10 +158,13 @@ class f:
 array = np.asarray
 rect = lambda z: array([rovnd * z.real, rovnd * z.imag])
 comp = lambda *p: complex(*p)
+
+
 def _rovnd(x):
     return vunc(round) * x
-rovnd = vunc(np.vectorize(round))
 
+
+rovnd = vunc(np.vectorize(round))
 
 if __name__ == '__main__':
     a = f(lambda x: x ** 2)
